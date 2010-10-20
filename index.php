@@ -21,13 +21,14 @@ header .advt{width:546px;float:left;padding:3px;}
 #container{width:100%;overflow:hidden;margin:0 auto 20px;}
 #content{width:5300px;}
 #scroller{width:5300px;height:30px;cursor:ew-resize;}
+#forkoff{color:#eee;padding:0.5em;position:absolute;right:0;top:0;font-size:0.8em;}
 </style>
 <!--[if IE]><script>var e="abbr,article,aside,audio,canvas,datalist,details,figure,footer,header,hgroup,mark,menu,meter,nav,output,progress,section,time,video".split(',');var i=e.length;while(i--){document.createElement(e[i]);}</script><![endif]-->
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js" type="text/javascript"></script>
 <script src="jquery.prettydate.js" type="text/javascript"></script>
 <script>
 $(function(){
-        
+    /* add pretty date */
     $(".trend-box .time").each(function(){
         var t = Date.parse( $(this).attr("data-timestamp") );
         var datetime = new Date(t);
@@ -38,10 +39,9 @@ $(function(){
         d.setUTCHours(datetime.getHours());
         d.setUTCMinutes(datetime.getMinutes());
         d.setUTCSeconds(datetime.getSeconds());
-
         $(this).html( prettyDate( d ) );
     });
-        
+    /* scrolling on mousemove and right,left key */
     var container = $('#container'),
         content = $('#content'),
         box_padding = 10,
@@ -94,6 +94,7 @@ $(function(){
             src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
             </script>
         </div>
+    <a id="forkoff" href="http://github.com/vsr/trends">Fork off!</a>
 </header>
 <div id="container">
 <div id="scroller"></div>
@@ -106,7 +107,7 @@ function getfilecontents($url){
 	curl_setopt($ch, CURLOPT_URL, $url);
 	curl_setopt($ch, CURLOPT_HEADER, 0);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt ($ch, CURLOPT_USERAGENT, "@vsr http://wg.vinayraikar.com/apps/trends/ - rockraikar@gmail.com");
+	curl_setopt ($ch, CURLOPT_USERAGENT, "trends- USER-AGENT ");
 	$res=curl_exec($ch);
 	$info=curl_getinfo($ch);
 	curl_close($ch);
@@ -138,45 +139,36 @@ $color_array = array(
 
 $url = "http://api.twitter.com/1/trends/daily.json";
 $file = "trends.json";
-
+$processed_file = "trends-processed.json";
 $trend_array = array();
 $term_color_array = array();
+$cache_period = 60*30; /* time after which cache is to be flushed: in seconds */
 
-
-if( !editedRecently( 60*30, $file) ){
+if( !editedRecently( $cache_period, $file) ){
 	$response = getfilecontents( $url );
 	if( $response[0]==true){
 		file_put_contents( $file, $response[2]);
 	}
 }
 
-
-$processed_file = "trends-processed.json";
-
-if( !editedRecently( 60*30, $processed_file) ){
+if( !editedRecently( $cache_period, $processed_file) ){
 
     $data = json_decode( file_get_contents( $file ), true);
-
     foreach($data['trends'] as $time=>$trends){
         $strtime =  strtotime($time);
         $trend_a = array();
         foreach($trends as $trend){
-            $trend_a[] = $trend;
+            $trend_a[] = array( 'query' => $trend['query'],  'name' => $trend['name'] );
         }
         $trend_array[$strtime] = $trend_a;
     }
-
     krsort($trend_array);
-
-
     file_put_contents( $processed_file, json_encode($trend_array) );
-
 }
 
 $trend_array = json_decode( file_get_contents( $processed_file ), true);
 
 foreach($trend_array as $datetime=>$trends){
-
 	$time = date( "d-M-Y H:i:s", $datetime );
 	$iso_date = date("Y/m/d H:i:s", $datetime);
 	echo "<div class='trend-box'><p class='time' data-timestamp='{$iso_date}'>{$time}</p><ul>";
@@ -184,11 +176,9 @@ foreach($trend_array as $datetime=>$trends){
         if( !isset($term_color_array[$trend['name']]) ){
             $term_color_array[$trend['name']] = $color_array[ rand(0, count($color_array)) ];
         }
-            
 		echo "<li style='background-color:".$term_color_array[$trend['name']]."' > <a target='twittersearch' href='http://search.twitter.com/search?q=".urlencode($trend['query'])."'>{$trend['name']}</a> </li>";
 	}
 	echo "</ul></div>";
-
 }
 ?>
 </div>
