@@ -82,17 +82,6 @@ $(function(){
 <header>
 	<h1><a href="">twitter trends for last 24 hours</a></h1>
         <div class="advt">
-            <script type="text/javascript"><!--
-            google_ad_client = "pub-7576293061984551";
-            /* trends 468x15, created 9/30/10 */
-            google_ad_slot = "0924371936";
-            google_ad_width = 468;
-            google_ad_height = 15;
-            //-->
-            </script>
-            <script type="text/javascript"
-            src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
-            </script>
         </div>
     <a id="forkoff" href="http://github.com/vsr/trends">Fork off!</a>
 </header>
