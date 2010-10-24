@@ -6,14 +6,15 @@
 <meta name="keywords" content="twitter,trend">
 <title>twitter trends for last 24 hours</title>
 <style>
-body{font-size:12px;font-family:sans-serif;background-color:#222;color:#fefefe;margin:0px;padding:0px;}
-.trend-box{width:200px;float:left;margin:0 10px;background-color:#333;}
+*{margin:0;padding:0;border:0;}
+body{font-size:12px;font-family:"Droid Serif",sans-serif;background-color:#222;color:#fefefe;margin:0px;padding:0px;}
+.trend-box{width:200px;float:left;margin:0 10px;}
 .trend-box ul{padding:0px;margin:0px;}
-.trend-box li{padding:3px;background-color:#e0e0e0;border-bottom:1px solid #555;list-style-type:none;}
+.trend-box li{padding:3px;background-color:#e0e0e0;border-bottom:1px solid #555;list-style-type:none;cursor:pointer;text-indent:0.5em;}
 .trend-box li:hover{opacity:0.95}
 .trend-box li a{color:#222;text-decoration:none;}
-.trend-box .time{text-align:center; font-weight:bold;}
-h1{text-align:left;font-size:1.1em;width:450px;float:left;margin:0px;padding:0px;line-height:1.5em;}
+.trend-box .time{text-align:center; font-weight:bold;padding:5px;font-size:0.9em;margin:0 -1px;cursor:pointer;}
+h1{text-align:left;font-size:1.5em;width:450px;float:left;margin:0px;padding:0px;line-height:1.5em;}
 h1 a{color:#1FC4FF;}
 a{text-decoration:none;}
 header{display:block;margin:0px;padding:10px;overflow:hidden;background:#111;}
@@ -21,12 +22,72 @@ header .advt{width:546px;float:left;padding:3px;}
 #container{width:100%;overflow:hidden;margin:0 auto 20px;}
 #content{width:5300px;}
 #scroller{width:5300px;height:30px;cursor:ew-resize;}
-#forkoff{color:#eee;padding:0.5em;position:absolute;right:0;top:0;font-size:0.8em;}
+.search-box{background-color:#FAFAFA;color:#222222;max-height:455px;min-height:100px;overflow:scroll;padding:5px;width:400px;}
+.tweetlist{padding:5px 0;overflow:hidden;}
+.tweetlist li{display:block;float:left;padding:2px 5px;width:100%;
+	border-bottom:1px dotted #666;font-size:0.8em;overflow:hidden;}
+.more{cursor:pointer;display:block;text-align:center;width:6em;margin:0 auto;font-size:0.8em;}
+.ui-dialog-titlebar{font-size:0.7em;font-weight:bold;}
+.tweetlist a.user{color:#1FC4FF;}
+.tweetlist .tweet{padding-left:0.5em;}
+#error-notification{display:none;position:fixed;width:100%;text-align:center;line-height:1.3em;color:#6F0E07;background-color:#F3FF8F;}
+.tweetlist li.loading{text-align:center;border:0;}
+#help{cursor:help;display:block;margin:10px;position:absolute;right:0;text-indent:999999px;top:0;}
+#help-dialog{padding:5px;display:none}
+#help-dialog li{list-style-type:disc;list-style:inside;padding:5px 0;}
 </style>
 <!--[if IE]><script>var e="abbr,article,aside,audio,canvas,datalist,details,figure,footer,header,hgroup,mark,menu,meter,nav,output,progress,section,time,video".split(',');var i=e.length;while(i--){document.createElement(e[i]);}</script><![endif]-->
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js" type="text/javascript"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.5/jquery-ui.min.js" type="text/javascript"></script>
+<script src="md5.js" type="text/javascript"></script>
+<link media="all" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.3/themes/dark-hive/jquery-ui.css" rel="stylesheet">
+<link href='http://fonts.googleapis.com/css?family=Droid+Serif&subset=latin' rel='stylesheet' type='text/css'>
 <script src="jquery.prettydate.js" type="text/javascript"></script>
 <script>
+function notify_error(XMLHttpRequest, textStatus, errorThrown){
+    $("#error-notification").text("Something went wrong while contacting twitter."+ textStatus).show();
+}
+function load_tweets(query, ele){
+	function render_results(data){
+        ele.data('query', data.next_page);
+        $.each(data.results, function(){
+            var user = $("<a></a>").text('@'+this.from_user).attr({'target':'twitteruser', 'href': 'http://twitter.com/'+this.from_user}).addClass('user');
+            var tweet = $("<span></span>").html(this.text).addClass('tweet');
+            var li = $("<li></li>").append(user).append(tweet);
+            $("ul",ele).append(li);
+        });
+        $("#error-notification").hide();
+        $(".loading",ele).remove();
+    }
+    var li = $("<li></li>").html("<img alt='loading' src='ajax-loader.gif' />").addClass('loading');
+    $("ul",ele).append(li);
+	$.ajax({
+        url: 'http://search.twitter.com/search.json'+query+'&show_user=true&result_type=recent&callback=?',
+        dataType: 'jsonp',
+        success: render_results,
+        type: "GET",
+        error: notify_error,
+        timeout: 1000*20
+        });
+}
+function load_search_dialog(element, event){
+	var id_str = MD5.hex_md5(element.text());
+	if( $("#"+id_str).length > 0){
+		$("#"+id_str).dialog({'position': [event.clientX, event.clientY]});
+		return;
+	}
+	else{
+		
+		var d = $("<div class='search-box'></div>").attr({ "id": id_str, "title": element.text()}).html("<ul class='tweetlist'></ul><a class='more ui-widget-header ui-corner-all'>more</a>");
+		$('body').append(d);
+		d.dialog({'position': [event.clientX, event.clientY]});
+		var query = '?page=1&rpp=10&q='+element.attr('data-url');
+		d.data('query',query);
+		load_tweets(query, $("#"+id_str));
+		$(".more",d).click(function(){ var query = d.data('query'); load_tweets(query , $("#"+id_str)); });
+	}
+}
+
 $(function(){
     /* add pretty date */
     $(".trend-box .time").each(function(){
@@ -57,11 +118,11 @@ $(function(){
     });
 
     $("*").keypress(function (e) {
-        if(e.keyCode == 39 ){
+        if(e.keyCode == 39 || e.charCode == 46  ){
             var pos = -$("#content").offset().left;
             var left = pos + 50;
         }
-        else if(e.keyCode == 37 ){
+        else if(e.keyCode == 37 || e.charCode == 44 ){
             var pos = -$("#content").offset().left;
             var left = pos - 50;
         }
@@ -75,15 +136,19 @@ $(function(){
         container.scrollLeft(left);
     });
 	
+	$(".trend-box li").click(function(ev){ load_search_dialog($("a", this), ev)});
+    $("#help").click(function(){  $("#help-dialog").dialog({'width': 500}); });
 });
 </script>
 </head>
 <body>
+<p id="error-notification"></p>
 <header>
 	<h1><a href="">twitter trends for last 24 hours</a></h1>
         <div class="advt">
+
         </div>
-    <a id="forkoff" href="http://github.com/vsr/trends">Fork off!</a>
+    <a id="help" href="#" class="ui-icon-help ui-icon">Help</a>
 </header>
 <div id="container">
 <div id="scroller"></div>
@@ -160,17 +225,24 @@ $trend_array = json_decode( file_get_contents( $processed_file ), true);
 foreach($trend_array as $datetime=>$trends){
 	$time = date( "d-M-Y H:i:s", $datetime );
 	$iso_date = date("Y/m/d H:i:s", $datetime);
-	echo "<div class='trend-box'><p class='time' data-timestamp='{$iso_date}'>{$time}</p><ul>";
+	echo "<div class='trend-box'><p class='time ui-dialog-titlebar ui-widget-header ui-corner-top ui-helper-clearfix' data-timestamp='{$iso_date}'>{$time}</p><ul>";
 	foreach($trends as $trend){
         if( !isset($term_color_array[$trend['name']]) ){
             $term_color_array[$trend['name']] = $color_array[ rand(0, count($color_array)) ];
         }
-		echo "<li style='background-color:".$term_color_array[$trend['name']]."' > <a target='twittersearch' href='http://search.twitter.com/search?q=".urlencode($trend['query'])."'>{$trend['name']}</a> </li>";
+		echo "<li style='background-color:".$term_color_array[$trend['name']]."' > <a data-url='".urlencode($trend['query'])."'>{$trend['name']}</a> </li>";
 	}
 	echo "</ul></div>";
 }
 ?>
 </div>
+</div>
+<div id="help-dialog" title="help">
+<ul>
+    <li>This is a simple app to view the trends on twitter for last 24 hours.</li>
+    <li>Use the right, left (or &gt; and &lt;) keyboard keys to scroll right or left.</li>
+    <li>Click on any trend item to view the latest search results.</li>
+</ul>
 </div>
 </body>
 </html>
