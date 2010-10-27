@@ -66,13 +66,6 @@ function load_tweets(query, ele, term){
         $(".loading",ele).remove();
     }
 
-	function render_trend_info(data){
-        if( data && data.api && data.api.trend && data.api.trend.blurb && data.api.trend.blurb.text ){
-            var p = $('<p></p>').text(data.api.trend.blurb.text).addClass('trend-info ui-corner-all');
-            $(ele).prepend(p);
-        }
-    }
-
     var li = $("<li></li>").html("<img alt='loading' src='ajax-loader.gif' />").addClass('loading');
     $("ul",ele).append(li);
 	$.ajax({
@@ -83,17 +76,6 @@ function load_tweets(query, ele, term){
         error: notify_error,
         timeout: 1000*20
         });
-
-	$.ajax({
-        url: 'http://api.whatthetrend.com/api/trend/getByName/' + term + '/jsonp?api_key=API_KEY&callback=?',
-        dataType: 'jsonp',
-        success: render_trend_info,
-        type: "GET",
-        error: notify_error,
-        timeout: 1000*20
-        });
-
-
 
 }
 
@@ -112,6 +94,25 @@ function load_search_dialog(element, event){
 		d.data('query',query);
 		load_tweets(query, $("#"+id_str), element.attr('data-url') );
 		$(".more",d).click(function(){ var query = d.data('query'); load_tweets(query , $("#"+id_str), element.attr('data-url') ); });
+        
+
+        function render_trend_info(data){
+            if( data && data.api && data.api.trend && data.api.trend.blurb && data.api.trend.blurb.text ){
+                var p = $('<p></p>').text(data.api.trend.blurb.text).addClass('trend-info ui-corner-all');
+                $(d).prepend(p);
+            }
+        }
+        
+        $.ajax({
+            url: 'http://api.whatthetrend.com/api/trend/getByName/' + element.attr('data-url') + '/jsonp?api_key=API_KEY&callback=?',
+            dataType: 'jsonp',
+            success: render_trend_info,
+            type: "GET",
+            error: notify_error,
+            timeout: 1000*20
+        });
+        
+        
 	}
 }
 
