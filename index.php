@@ -32,6 +32,9 @@ header .advt{width:546px;float:left;padding:3px;}
 .tweetlist .tweet{padding-left:0.5em;}
 #error-notification{display:none;position:fixed;width:100%;text-align:center;line-height:1.3em;color:#6F0E07;background-color:#F3FF8F;}
 .tweetlist li.loading{text-align:center;border:0;}
+.trend-info{background-color:#222222;color:#EEEEEE;font-size:0.8em;padding:2px 13px;}
+#attribution{float:left;font-size:0.6em;color:#1FC4FF;}
+#attribution a{color:#FAFAFA;}
 #help{cursor:help;display:block;margin:10px;position:absolute;right:0;text-indent:999999px;top:0;}
 #help-dialog{padding:5px;display:none}
 #help-dialog li{list-style-type:disc;list-style:inside;padding:5px 0;}
@@ -47,8 +50,11 @@ header .advt{width:546px;float:left;padding:3px;}
 function notify_error(XMLHttpRequest, textStatus, errorThrown){
     $("#error-notification").text("Something went wrong while contacting twitter."+ textStatus).show();
 }
-function load_tweets(query, ele){
-	function render_results(data){
+
+var whatthetrend_url = 'http://api.whatthetrend.com/api/trend/getByName/$trend$/jsonp?api_key=API_KEY&callback=?';
+function load_tweets(query, ele, term){
+
+	function render_tweets(data){
         ele.data('query', data.next_page);
         $.each(data.results, function(){
             var user = $("<a></a>").text('@'+this.from_user).attr({'target':'twitteruser', 'href': 'http://twitter.com/'+this.from_user}).addClass('user');
@@ -59,32 +65,53 @@ function load_tweets(query, ele){
         $("#error-notification").hide();
         $(".loading",ele).remove();
     }
+
+	function render_trend_info(data){
+        if( data && data.api && data.api.trend && data.api.trend.blurb && data.api.trend.blurb.text ){
+            var p = $('<p></p>').text(data.api.trend.blurb.text).addClass('trend-info ui-corner-all');
+            $(ele).prepend(p);
+        }
+    }
+
     var li = $("<li></li>").html("<img alt='loading' src='ajax-loader.gif' />").addClass('loading');
     $("ul",ele).append(li);
 	$.ajax({
         url: 'http://search.twitter.com/search.json'+query+'&show_user=true&result_type=recent&callback=?',
         dataType: 'jsonp',
-        success: render_results,
+        success: render_tweets,
         type: "GET",
         error: notify_error,
         timeout: 1000*20
         });
+
+	$.ajax({
+        url: 'http://api.whatthetrend.com/api/trend/getByName/' + term + '/jsonp?api_key=API_KEY&callback=?',
+        dataType: 'jsonp',
+        success: render_trend_info,
+        type: "GET",
+        error: notify_error,
+        timeout: 1000*20
+        });
+
+
+
 }
+
 function load_search_dialog(element, event){
 	var id_str = MD5.hex_md5(element.text());
 	if( $("#"+id_str).length > 0){
-		$("#"+id_str).dialog({'position': [event.clientX, event.clientY]});
+		$("#"+id_str).dialog({'position': [event.clientX, event.clientY], "width": 400});
 		return;
 	}
 	else{
 		
 		var d = $("<div class='search-box'></div>").attr({ "id": id_str, "title": element.text()}).html("<ul class='tweetlist'></ul><a class='more ui-widget-header ui-corner-all'>more</a>");
 		$('body').append(d);
-		d.dialog({'position': [event.clientX, event.clientY]});
+		d.dialog({'position': [event.clientX, event.clientY], "width": 400});
 		var query = '?page=1&rpp=10&q='+element.attr('data-url');
 		d.data('query',query);
-		load_tweets(query, $("#"+id_str));
-		$(".more",d).click(function(){ var query = d.data('query'); load_tweets(query , $("#"+id_str)); });
+		load_tweets(query, $("#"+id_str), element.attr('data-url') );
+		$(".more",d).click(function(){ var query = d.data('query'); load_tweets(query , $("#"+id_str), element.attr('data-url') ); });
 	}
 }
 
@@ -146,8 +173,19 @@ $(function(){
 <header>
 	<h1><a href="">twitter trends for last 24 hours</a></h1>
         <div class="advt">
-
+            <script type="text/javascript"><!--
+            google_ad_client = "pub-7576293061984551";
+            /* trends 468x15, created 9/30/10 */
+            google_ad_slot = "0924371936";
+            google_ad_width = 468;
+            google_ad_height = 15;
+            //-->
+            </script>
+            <script type="text/javascript"
+            src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+            </script>
         </div>
+        <p id="attribution">data from: <a href="http://dev.twitter.com/doc/get/trends/daily">twitterapi</a>, <a href="http://api.whatthetrend.com/">whatthetrend.com</a>, <a href="http://www.colourlovers.com/api">COLOURlovers.com</a>.</p>
     <a id="help" href="#" class="ui-icon-help ui-icon">Help</a>
 </header>
 <div id="container">
@@ -184,14 +222,16 @@ function editedRecently($secs,$filename){
 
 $color_array = array(
 					'#F0F8FF','#EFDECD','#CD9575','#8DB600','#FAE7B5','#F5F5DC','#FFC1CC',
-					'#F0DC82','#DEB887','#99BADD','#FBEC5D','#FFFF31','#BDB76B','#EEDC82',
+					/*'#F0DC82','#DEB887','#99BADD','#FBEC5D','#FFFF31','#BDB76B','#EEDC82',
 					'#FCF75E','#BDDA57','#C3B091','#CCCCFF','#BFFF00','#F3E5AB','#FFCC99',
-					'#B57DDF','#FFBCAF','#8FFFC8','#94FF5F','#B7AFFF','#5FFFA2','#E0FF5F',
-
+					'#B57DDF','#FFBCAF','#8FFFC8','#94FF5F','#B7AFFF','#5FFFA2','#E0FF5F',*/
 			);
 
 
 $url = "http://api.twitter.com/1/trends/daily.json";
+$colorlovers_top_url = "http://www.colourlovers.com/api/colors/top?numResults=50&briRange=90,99&hueRange=10,300&format=json";
+$colors_file = 'colors.json';
+$processed_color_file = 'colors-processed.json';
 $file = "trends.json";
 $processed_file = "trends-processed.json";
 $trend_array = array();
@@ -220,7 +260,25 @@ if( !editedRecently( $cache_period, $processed_file) ){
     file_put_contents( $processed_file, json_encode($trend_array) );
 }
 
+if( !editedRecently( $cache_period*12, $colors_file) ){
+	$response = getfilecontents( $colorlovers_top_url );
+	if( $response[0]==true){
+		file_put_contents( $colors_file, $response[2]);
+	}
+}
+
+if( !editedRecently( $cache_period*12, $processed_color_file) ){
+    $data = json_decode( file_get_contents( $colors_file ), true);
+    foreach($data as $color){
+        $color_array[] = '#'.$color['hex'];
+    }
+    file_put_contents( $processed_color_file, json_encode($color_array) );
+}
+
+$color_array = json_decode( file_get_contents( $processed_color_file ), true) ;
 $trend_array = json_decode( file_get_contents( $processed_file ), true);
+
+shuffle( $color_array );
 
 foreach($trend_array as $datetime=>$trends){
 	$time = date( "d-M-Y H:i:s", $datetime );
